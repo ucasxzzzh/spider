@@ -15,12 +15,12 @@ private:
 public:
 	CHttp();
 	~CHttp();
-	bool Init();
 	bool AnalyseUrl(string url);
 	bool Connect();
-	bool FetchHtml(string &html);
+	bool FetchHtml(string url,string &html);
 	bool AnalyseHtml();
 	bool Download(string url,string filename);
+	bool closesocket();
 };
 
 #endif

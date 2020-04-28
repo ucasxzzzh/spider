@@ -1,7 +1,10 @@
 #include<iostream>
 #include<string>
 #include<queue>
-#include<regex.h>
+#include<regex>
+#include<vector>
+#include<unistd.h>
+#include<set>
 #include "http.h"
 
 using namespace std;
@@ -30,36 +33,62 @@ bool StartCatch(string url)
 		string currentUrl = q.front();
 		q.pop();
 		
-		
-		CHttp http;
-		//网络初始化，新建套接字
-		if(!http.Init())
-		{
-			cout<<"network init failed!!!"<<endl;
-			return false;
-		}
-		//解析url，分解域名和资源
-		if(!http.AnalyseUrl(currentUrl))
-		{
-			cout<<"AnalyseUrl failed!!!"<<endl;
-			return false;
-		}
-		//连接服务器
-		if(!http.Connect())
-		{
-			cout<<"connect to host failed!!!"<<endl;
-			return false;
-		}
+		CHttp http;		
 		//抓取html源代码
 		string html;
-		if(!http.FetchHtml(html))
-		{
-			cout<<"fetch html failed!!!"<<endl;
-			return false;
-		}
-		cout<<html<<endl;
+		http.FetchHtml(currentUrl,html);
+		// cout<<html<<endl;
+		http.closesocket();
+
+		//编码转换
+		
 
 		//解析网页内容
+		vector<string> vecImage;
+		smatch sm;
+		regex re("http://[^\\s'\"<>(){}]+");
+		string::const_iterator start = html.begin();
+		string::const_iterator end = html.end();
+		while(regex_search(start,end,sm,re))
+		{
+			string tmp = sm[0];
+			if(tmp.find(".jpg") != -1 || tmp.find(".png") != -1 
+			|| tmp.find(".jpeg") != -1)
+			{
+				vecImage.push_back(tmp);
+			}
+			else
+			{
+				//去除w3c
+				//if(tmp.find("http://www.w3.org/") == -1)
+				//	q.push(tmp);
+			}
+			//cout<<tmp<<endl;
+			start = sm[0].second;
+		}
+
+    	sort(vecImage.begin(),vecImage.end());
+ 	    auto it = unique(vecImage.begin(), vecImage.end());
+	    vecImage.erase(it, vecImage.end());
+
+		for(auto iter=vecImage.begin();iter!=vecImage.end();iter++)
+		{
+			cout<<*iter<<endl;
+		}
+		for(auto iter=vecImage.begin();iter!=vecImage.end();iter++)
+		{
+			CHttp httpDownload;
+			char buf[256] = {0};
+    		getcwd(buf, 256);
+			string currentPath = buf;
+			cout<<currentPath<<endl;
+			string filename = currentPath + "/img/" 
+			+ (*iter).substr((*iter).find_last_of('/')+1);
+			if(!httpDownload.Download(*iter,filename))
+			{
+				cout<<"download failed!!!"<<endl;
+			}
+		}
 
 	
 	}

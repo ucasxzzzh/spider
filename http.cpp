@@ -1,7 +1,11 @@
-#include<iostream>
-#include<string>
-#include<string.h>
+#include <iostream>
+#include <string>
+#include <string.h>
 #include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>  
+#include <unistd.h>  
+#include <fcntl.h> 
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include "http.h"
@@ -11,6 +15,7 @@ using namespace std;
 CHttp::CHttp()
 {
 	cout<<"gouzaohanshu"<<endl;
+	m_socket = socket(AF_INET, SOCK_STREAM, 0);
 }
 
 CHttp::~CHttp()
@@ -18,9 +23,12 @@ CHttp::~CHttp()
 	
 }
 
-bool CHttp::Init()
+bool CHttp::closesocket()
 {
-	m_socket = socket(AF_INET, SOCK_STREAM, 0);
+	close(m_socket);
+	m_host.empty();
+	m_object.empty();
+	m_socket = 0;
 	return true;
 }
 
@@ -72,8 +80,19 @@ bool CHttp::Connect()
 	return true;
 }
 
-bool CHttp::FetchHtml(string &html)
+bool CHttp::FetchHtml(string currentUrl,string &html)
 {
+	if(!AnalyseUrl(currentUrl))
+	{
+		cout<<"AnalyseUrl failed!!!"<<endl;
+		return false;
+	}
+	//连接服务器
+	if(!Connect())
+	{
+		cout<<"connect to host failed!!!"<<endl;
+		return false;
+	}
 	//模拟浏览器发送请求info
 
 	/*
@@ -110,5 +129,46 @@ bool CHttp::AnalyseHtml()
 
 bool CHttp::Download(string url,string filename)
 {
+	AnalyseUrl(url);
+	Connect();
+	string info;
+	info = info + "GET " + m_object + " HTTP/1.1\r\n";
+	info = info + "Host: " + m_host + "\r\n";
+	info = info + "User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.7 Safari/537.36\r\n";
+	info = info + "Connection: Close\r\n";
+	info += "\r\n";
+	cout<<info;
+
+	send(m_socket,info.c_str(),info.size(),0);
+	
+	FILE *fp = fopen(filename.c_str(),"wb");
+	cout<<"+++++++++" + filename + "+++++++++++"<<endl;
+	if(fp == NULL)
+	{
+		cout<<"fp error"<<endl;
+		return false;
+	}
+
+	char ch = 0;
+	while(recv(m_socket,&ch,sizeof(ch),0))
+	{
+		if(ch == '\n')
+		{
+			recv(m_socket,&ch,sizeof(ch),0);
+			if(ch == '\n')
+			{
+				break;
+			}
+		}
+	}
+
+
+	while(recv(m_socket,&ch,sizeof(ch),0))
+	{
+		fwrite(&ch,1,1,fp);
+	}
+
+	fclose(fp);
+
 	return true;
 }
