@@ -152,14 +152,23 @@ bool CHttp::Download(string url,string filename)
 	char ch = 0;
 	while(recv(m_socket,&ch,sizeof(ch),0))
 	{
-		if(ch == '\n')
+		if(ch == '\r')
 		{
 			recv(m_socket,&ch,sizeof(ch),0);
 			if(ch == '\n')
 			{
-				break;
+				recv(m_socket,&ch,sizeof(ch),0);
+				if(ch == '\r')
+				{
+					recv(m_socket,&ch,sizeof(ch),0);
+					if(ch == '\n')
+					{
+						break;
+					}
+				}
 			}
 		}
+
 	}
 
 
