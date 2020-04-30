@@ -60,8 +60,8 @@ bool StartCatch(string url)
 			else
 			{
 				//去除w3c
-				//if(tmp.find("http://www.w3.org/") == -1)
-				//	q.push(tmp);
+				if(tmp.find("http://www.w3.org/") == -1)
+					q.push(tmp);
 			}
 			//cout<<tmp<<endl;
 			start = sm[0].second;
