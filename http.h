@@ -18,7 +18,7 @@ public:
 	bool AnalyseUrl(string url);
 	bool Connect();
 	bool FetchHtml(string url,string &html);
-	bool AnalyseHtml();
+	bool SendRequest();
 	bool Download(string url,string filename);
 	bool closesocket();
 };

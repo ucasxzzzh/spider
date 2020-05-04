@@ -14,7 +14,7 @@ using namespace std;
 
 CHttp::CHttp()
 {
-	cout<<"gouzaohanshu"<<endl;
+	//构造函数中新建套接字
 	m_socket = socket(AF_INET, SOCK_STREAM, 0);
 }
 
@@ -25,6 +25,7 @@ CHttp::~CHttp()
 
 bool CHttp::closesocket()
 {
+	//关闭套接字，对象参数清零
 	close(m_socket);
 	m_host.empty();
 	m_object.empty();
@@ -34,8 +35,8 @@ bool CHttp::closesocket()
 
 bool CHttp::AnalyseUrl(string url)
 {
-	//字符串全部转小写 tolower
-	//https://tool.oschina.net/uploads/apidocs/jquery/regexp.html
+	//截取关键信息
+	//http://www.quanshuwang.com/book_38304.html
 	int len = 7;
 	if(url.find("http://") == string::npos && url.find("https://") == string::npos)
 		return false;
@@ -61,16 +62,18 @@ bool CHttp::AnalyseUrl(string url)
 
 bool CHttp::Connect()
 {
+	//获取域名对应的ip地址
 	hostent *p = gethostbyname(m_host.c_str());
 	if(p == NULL)
 		return false;
 	string ip = inet_ntoa(*((in_addr*)p->h_addr));
 	cout<<inet_ntoa(*((in_addr*)p->h_addr))<<endl;
+
+	//网络编程必备
 	sockaddr_in sa;
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons(80);
 	sa.sin_addr.s_addr = inet_addr(ip.c_str());
-
 	if(connect(m_socket,(sockaddr*)&sa,sizeof(sa)) == -1)
 	{
 		cout<<"connect failed!!!"<<endl;
@@ -82,6 +85,7 @@ bool CHttp::Connect()
 
 bool CHttp::FetchHtml(string currentUrl,string &html)
 {
+	//拆分URL
 	if(!AnalyseUrl(currentUrl))
 	{
 		cout<<"AnalyseUrl failed!!!"<<endl;
@@ -93,8 +97,26 @@ bool CHttp::FetchHtml(string currentUrl,string &html)
 		cout<<"connect to host failed!!!"<<endl;
 		return false;
 	}
-	//模拟浏览器发送请求info
+	if(!SendRequest())
+	{
+		cout<<"send request failed!!!"<<endl;
+		return false;
+	}
+	
+	//一个字节一个字节接收数据
+	char ch;
+	while(recv(m_socket,&ch,sizeof(ch),0))
+	{
+		html += ch;
+	}
 
+	return true;
+}
+
+bool CHttp::SendRequest()
+{
+	
+	//模拟浏览器发送请求info
 	/*
 	GET https://blog.csdn.net/u012836896 HTTP/1.1
 	Host: blog.csdn.net
@@ -111,19 +133,8 @@ bool CHttp::FetchHtml(string currentUrl,string &html)
 	info += "\r\n";
 	cout<<info;
 
+	//发送GET请求
 	send(m_socket,info.c_str(),info.size(),0);
-
-	char ch;
-	while(recv(m_socket,&ch,sizeof(ch),0))
-	{
-		html += ch;
-	}
-
-	return true;
-}
-
-bool CHttp::AnalyseHtml()
-{
 	return true;
 }
 
@@ -131,24 +142,17 @@ bool CHttp::Download(string url,string filename)
 {
 	AnalyseUrl(url);
 	Connect();
-	string info;
-	info = info + "GET " + m_object + " HTTP/1.1\r\n";
-	info = info + "Host: " + m_host + "\r\n";
-	info = info + "User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.7 Safari/537.36\r\n";
-	info = info + "Connection: Close\r\n";
-	info += "\r\n";
-	cout<<info;
-
-	send(m_socket,info.c_str(),info.size(),0);
+	SendRequest();
 	
+	//打开指定文件
 	FILE *fp = fopen(filename.c_str(),"wb");
-	cout<<"+++++++++" + filename + "+++++++++++"<<endl;
-	if(fp == NULL)
+	if(NULL == fp)
 	{
 		cout<<"fp error"<<endl;
 		return false;
 	}
 
+	//删除HTTP请求回复的头部分
 	char ch = 0;
 	while(recv(m_socket,&ch,sizeof(ch),0))
 	{
@@ -171,7 +175,7 @@ bool CHttp::Download(string url,string filename)
 
 	}
 
-
+	//一字节一字节写入文件
 	while(recv(m_socket,&ch,sizeof(ch),0))
 	{
 		fwrite(&ch,1,1,fp);
